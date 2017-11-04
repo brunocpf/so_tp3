@@ -27,8 +27,7 @@ unsigned int block_size;
 
 int main(int argc, char **argv) {
     if (argc < 2) {
-        printf("Error: Input file not entered.\n
-                Usage: dcc_os_fsck <path>");
+        printf("Error: Input file not entered.\nUsage: dcc_os_fsck <path>");
         exit(EXIT_FAILURE);
     }
     
@@ -37,8 +36,7 @@ int main(int argc, char **argv) {
     sd = open(argv[1], O_RDWR);
 
     if (sd < 0) {
-        printf("Error: Unable to open input file.\n
-                Usage: dcc_os_fsck <path>");
+        printf("Error: Unable to open input file.\nUsage: dcc_os_fsck <path>");
         exit(EXIT_FAILURE);
     }
 
@@ -101,7 +99,7 @@ void check_fun1(int fd) {
                 read(sd, &temp_super, sizeof(temp_super));
                 if (!is_attacked(temp_super)) {
                     printf("Backup found, now copying...\n");
-                    copy_super(&temp_super);
+                    copy_super(temp_super);
                     printf("Backup complete.\n");
                     return;
                 } else {
