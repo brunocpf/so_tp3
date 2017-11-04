@@ -4,23 +4,26 @@
 #include <linux/fs.h>
 #include <linux/ext2_fs.h>
 
-/* location of the super-block in the first group */
-#define BASE_OFFSET 1024
+#define BASE_OFFSET 1024 // location of the super-block in the first group
 #define BLOCK_OFFSET(block) (BASE_OFFSET + (block-1)*block_size)
 
 typedef int __le32;
 
-void init_data_structures();
-
-void cleanup_data_structures();
+void check_fun1(int);
+void check_fun2(int);
+void check_fun3(int);
+void check_fun4(int);
+void check_ex1(int);
 
 /* ---- GLOBALS ---- */
-int sd; // input file descriptor
-struct ext2_super_block super; // super-block
+const unsigned int super_backup_locations[3] = { 8193, 16384, 32768 };
+
+struct ext2_super_block super;
 unsigned int group_count;
 unsigned int descr_list_size;
 unsigned int block_size;
 /* ----------------- */
+
 
 int main(int argc, char **argv) {
     if (argc < 2) {
@@ -29,7 +32,8 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
     
-    char user_input;
+    int sd; // input file descriptor
+    
     sd = open(argv[1], O_RDWR);
 
     if (sd < 0) {
@@ -38,81 +42,95 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    init_data_structures();
-
     printf("Scanning file system...");    
 
-    // Fun 1: check if  super is zerod
-    if (iszerod(super)) {
-        printf("Disk error found:\n
-                [Fun 1] Super-block was attacked and cannot be read.\n\n");
+    lseek(sd, BASE_OFFSET, SEEK_SET); // position head above first super-block
+    read(sd, &super, sizeof(super)); // read superblock
 
-        printf("Do you wish to recover it using a back-up? (Y/<N>)");
-        scanf("%c", &user_input);
-        if (user_input == "Y") {
-            printf("\nLooking for a backup...\n");
-            struct ext2_super_block temp_super;
-            /* Loop through each group */
-            for (???) {
-                lseek(sd, BASE_OFFSET + group_size * i, SEEK_SET);
+    /* [Fun 1]: check if super-block was attacked */
+    check_fun1(sd);
+
+    group_count = 1 + (super.s_blocks_count-1) / super.s_blocks_per_group; // calculate number of block groups on the disk
+    descr_list_size = group_count * sizeof(struct ext2_group_descr); // calculate size of the group descriptor list in bytes
+    block_size = 1024 << super.s_log_block_size; // calculate block size in bytes
+
+    /* [Fun 2]: check if magic number matches */
+    check_fun2(sd);
+
+    // Fun 3
+    check_fun3(sd);
+
+    // Fun 4
+    check_fun4(sd);
+
+
+    printf("fsck exiting.\nNo errors found.\n");
+    exit(EXIT_SUCCESS);
+}
+
+/* ---------- Auxiliary Functions --------- */
+int is_attacked(struct ext2_super_block super_block) {
+    if (super_block == NULL ||
+       (super.s_magic == NULL) ||        
+       (super.s_magic == EXT2_SUPER_MAGIC))
+        return 1;
+    else return 0;
+}
+
+void copy_super(struct ext2_super_block super_block) {
+    lseek(sd, BASE_OFFSET, SEEK_SET);
+    write(sd, &super_block, sizeof(super_block));
+}
+/* ---------------------------------------- */
+
+
+void check_fun1(int fd) {
+    short i;
+    char input;
+    struct ext2_super_block temp_super;
+
+    if (is_attacked(super)) {
+        printf("Disk error found:\n
+                [Fun 1] Super-block magic number does not match and the disk could not be read.\nThe super-block might have been attacked or the file system is not ext2.\n\nDo you wish to attempt to recover it by using a backup on the disk? (Y/<N>)");
+        scanf("%c", &input);
+        printf("\n")
+        if (input == "Y") {
+            for(i = 0; i < 3; i++) {
+                printf("Checking backup at addr %d...\n", super_backup_location[i]);
+                lseek(sd, super_backup_location[i], SEEK_SET);
                 read(sd, &temp_super, sizeof(temp_super));
-                if (!iszerod(temp_super)) {
-                    printf("Backup found on group %d.\n", i);
+                if (!is_attacked(temp_super)) {
+                    printf("Backup found, now copying...\n");
                     copy_super(&temp_super);
                     printf("Backup complete.\n");
-                    break;
+                    return;
+                } else {
+                    printf("Could not be used.\n");
                 }
             }
-        } else {
-            cleanup_data_structures();
-            printf("fsck exiting with errors.\n");
-            exit(EXIT_FAILURE);
+            printf("Backup could not be found.")
         }
-
     }
+    printf("Could not continue fsck.\nExiting with errors.\n");    
+    exit(EXIT_FAILURE);
+}
 
-    /* calculate number of block groups on the disk */
-    group_count = 1 + (super.s_blocks_count-1) / super.s_blocks_per_group;
+void check_fun2(int fd) {
+    
+}
 
-    /* calculate size of the group descriptor list in bytes */
-    descr_list_size = group_count * sizeof(struct ext2_group_descr);
-        
-    /* calculate block size in bytes */
-    block_size = 1024 << super.s_log_block_size; 
+void check_fun3(int fd) {
+    
+}
 
-	if (super.s_magic != EXT2_SUPER_MAGIC) {
-        printf("Error: File system magic number does not match.\n");
+void check_fun4(int fd) {
+    
+}
+
+void check_ex1(int fd) {
+    if (super.s_magic != EXT2_SUPER_MAGIC) {
+        printf("Disk Error found:\n[Extra 1] File system magic number does not match.\n");
         exit(EXIT_FAILURE);
     }
-
-
-    struct ext2_group_descr group_descr;
-    /* iterate over each group */
-    for (i = 0; i < group_count; i++) {
-
-        lseek(sd, BASE_OFFSET + group_size * i + block_size, SEEK_SET);
-        read(sd, &group_descr, sizeof(group_descr));
-
-        // ...
-
-    }
-
-    if(1) {
-        printf("fsck successful.\n
-                No errors found.\n");
-        cleanup_data_structures();
-        exit(EXIT_SUCCESS);
-    }
-}
-
-void init_data_structures() {
-    /* position head above first super-block */
-    lseek(sd, BASE_OFFSET, SEEK_SET);
-
-    /* read super-block */
-    read(sd, &super, sizeof(super));
-}
-
-void cleanup_data_structures() {
-
+    printf("[Extra 1] Magic number matches. \n");
 }
