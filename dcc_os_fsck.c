@@ -60,13 +60,13 @@ int main(int argc, char **argv) {
     printf("\n--> [Fun 2]: Checking for multiply-owned blocks...\n");    
     check_fun2(sd);
 
-    printf("\n--> [Fun 3]: file permissions...\n");    
+    printf("\n--> [Fun 3]: Checking file permissions...\n");    
     check_fun3(sd);
 
-    // Fun 4
+    printf("\n--> [Fun 4]: Checking for orphaned files...\n");    
     check_fun4(sd);
 
-    printf("fsck exiting.\nNo errors found.\n");
+    printf("fsck exiting successfully.\n");
     exit(EXIT_SUCCESS);
 }
 
