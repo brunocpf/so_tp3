@@ -217,8 +217,6 @@ void check_fun2(int fd) {
                     free(i_bmap);
                 }
             } else {
-                free(d_bmap);
-                free(i_bmap);
                 printf("Could not complete fsck.\nExiting with errors.\n");    
                 exit(EXIT_FAILURE);
             }
@@ -276,7 +274,7 @@ void check_fun3(int fd) {
                     printf("Please input the permissions in decimal format (rwx).\n");
                     scanf(" %d", &input_perm);
                     printf("\n");
-                    printf("Setting inode permissions to %o...\n");
+                    printf("Setting inode permissions to %o...\n", input_perm);
                     temp_inode.i_mode += input_perm;
                     write_inode(fd, j, &temp_group_desc, i, temp_inode);
                 } else {
