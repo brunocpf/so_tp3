@@ -60,8 +60,8 @@ int main(int argc, char **argv) {
     printf("\n--> [Fun 2]: Checking for multiply-owned blocks...\n");    
     check_fun2(sd);
 
-    // Fun 3
-    //check_fun3(sd);
+    printf("\n--> [Fun 3]: file permissions...\n");    
+    check_fun3(sd);
 
     // Fun 4
     check_fun4(sd);
@@ -91,6 +91,12 @@ static void read_inode(int fd, int inode_no, const struct ext2_group_desc *group
     unsigned int offset = BLOCK_OFFSET(group->bg_inode_table) + group_size * group_no;
     lseek(fd, offset+(inode_no-1)*sizeof(struct ext2_inode), SEEK_SET);
     read(fd, inode, sizeof(struct ext2_inode));
+}
+
+static void write_inode(int fd, int inode_no, const struct ext2_group_desc *group, unsigned int group_no, struct ext2_inode inode) {
+    unsigned int offset = BLOCK_OFFSET(group->bg_inode_table) + group_size * group_no;
+    lseek(fd, offset+(inode_no-1)*sizeof(struct ext2_inode), SEEK_SET);
+    write(fd, &inode, sizeof(struct ext2_inode));
 }
 /* ---------------------------------------- */
 
@@ -211,6 +217,8 @@ void check_fun2(int fd) {
                     free(i_bmap);
                 }
             } else {
+                free(d_bmap);
+                free(i_bmap);
                 printf("Could not complete fsck.\nExiting with errors.\n");    
                 exit(EXIT_FAILURE);
             }
@@ -226,26 +234,29 @@ void check_fun2(int fd) {
     }
 
     printf("[Fun 2] OK: No multiply-owned blocks.\n");
-
 }
 
 void check_fun3(int fd) {
-    short i, j, k;
+    int i, j, k, l;
     char input;
+    unsigned int input_perm;
     unsigned int offset;
     struct ext2_group_desc temp_group_desc;
     struct ext2_inode temp_inode;
+    unsigned char owned_blocks[super.s_blocks_count];
 
+    for(i = 0; i < super.s_blocks_count; i++)
+        owned_blocks[i] = 0;
+
+    // Checking owned blocks
     for(i = 0; i < group_count; i++) {
-        offset = block_size * super.s_blocks_per_group * i;
-        lseek(fd, BASE_OFFSET + offset + block_size, SEEK_SET);  /* position head above the group descriptor block */
+        offset = BASE_OFFSET + group_size * i;
+        printf("Checking for inodes in group %d, offset %d...\n", i, offset);
+        lseek(fd, offset + block_size, SEEK_SET);  /* position head above the group descriptor block */
         read(fd, &temp_group_desc, sizeof(temp_group_desc));
 
-        unsigned char *d_bmap;
-        unsigned char *i_bmap;
-
-        d_bmap = malloc(block_size);
-        i_bmap = malloc(block_size);
+        unsigned char *d_bmap = malloc(block_size);;
+        unsigned char *i_bmap = malloc(block_size);
 
         lseek(fd, BLOCK_OFFSET(temp_group_desc.bg_block_bitmap), SEEK_SET);
         read(fd, d_bmap, block_size);
@@ -253,33 +264,33 @@ void check_fun3(int fd) {
         lseek(fd, BLOCK_OFFSET(temp_group_desc.bg_inode_bitmap), SEEK_SET);
         read(fd, i_bmap, block_size);
         
-        for(j = 0; j < super.s_inodes_per_group; j++) {
-            if(!TEST_BIT(i_bmap, j)) // check if inode is valid
+        for(j = 1; j <= super.s_inodes_per_group; j++) {
+            read_inode(fd, j, &temp_group_desc, i, &temp_inode);
+            if(!TEST_BIT(i_bmap, j-1) || temp_inode.i_size <= 0) // check if inode is valid
                 continue;
-            printf("Reading inode %d/%d from group %d...\n",
-                    j, super.s_inodes_per_group, i);
-            read_inode(fd, j+1, &temp_group_desc, i, &temp_inode);
-            printf("inode file mode %d, inode size %d, inode num %d\n", temp_inode.i_mode, temp_inode.i_size, j+1);            
-            
-            
-            
-            if (is_permission_corrupted(temp_inode)) {
-                printf("Disk error found:\n[Fun 3] File permissions corrupted.\nSet permissions? (Y/<N>)");
-                scanf("%c", &input);
+            if(is_permission_corrupted(temp_inode)) {
+                printf("Inode with corrupted permissions found: %d.\nDo you wish to set its permissions? (Y/<N>)", j);
+                scanf(" %c", &input);
                 printf("\n");
                 if (input == 'Y' || input == 'y') {
-                    continue;
-                } 
-                else {
-                  printf("Could not complete fsck.\nExiting with errors.\n");    
-                  exit(EXIT_FAILURE);
+                    printf("Please input the permissions in decimal format (rwx).\n");
+                    scanf(" %d", &input_perm);
+                    printf("\n");
+                    printf("Setting inode permissions to %o...\n");
+                    temp_inode.i_mode += input_perm;
+                    write_inode(fd, j, &temp_group_desc, i, temp_inode);
+                } else {
+                    free(d_bmap);
+                    free(i_bmap);
+                    printf("Could not complete fsck.\nExiting with errors.\n");    
+                    exit(EXIT_FAILURE);
                 }
             }
         }
         free(d_bmap);
         free(i_bmap);
     }
-    printf("[Fun 3] OK: Consistent permissions.\n");
+    printf("[Fun 3] OK: No corrupted permissions.\n");
 }
 
 void check_fun4(int fd) {
