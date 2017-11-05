@@ -5,9 +5,6 @@
 #include <linux/fs.h>
 #include "ext2.h"
 
-
-
-
 #define BASE_OFFSET 1024 // location of the super-block in the first group
 #define BLOCK_OFFSET(block) (BASE_OFFSET + (block-1)*block_size)
 
@@ -42,10 +39,13 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    printf("Scanning file system...");    
+    printf("Scanning file system...\n");    
 
     lseek(sd, BASE_OFFSET, SEEK_SET); // position head above first super-block
     read(sd, &super, sizeof(super)); // read superblock
+
+    printf("Sizeof: %d %d\nMagic: %d\n", (int) sizeof(super), (int) sizeof(struct ext2_super_block), super.s_magic);
+
 
     /* [Fun 1]: check if super-block was attacked */
     check_fun1(sd);
@@ -70,7 +70,7 @@ int main(int argc, char **argv) {
 
 /* ---------- Auxiliary Functions --------- */
 int is_attacked(struct ext2_super_block super_block) {
-    if (super.s_magic != EXT2_SUPER_MAGIC)
+    if (super_block.s_magic != EXT2_SUPER_MAGIC)
         return 1;
     else return 0;
 }
@@ -78,6 +78,9 @@ int is_attacked(struct ext2_super_block super_block) {
 void copy_super(int fd, struct ext2_super_block super_block) {
     lseek(fd, BASE_OFFSET, SEEK_SET);
     write(fd, &super_block, sizeof(super_block));
+    
+    lseek(fd, BASE_OFFSET, SEEK_SET);
+    read(fd, &super, sizeof(super));
 }
 /* ---------------------------------------- */
 
@@ -91,11 +94,12 @@ void check_fun1(int fd) {
         printf("Disk error found:\n[Fun 1] Super-block magic number does not match and the disk could not be read.\nThe super-block might have been attacked or the file system is not ext2.\n\nDo you wish to attempt to recover it by using a backup on the disk? (Y/<N>)");
         scanf("%c", &input);
         printf("\n");
-        if (input == 'Y') {
+        if (input == 'Y' || input == 'y') {
             for(i = 0; i < 3; i++) {
                 printf("Checking backup at addr %d...\n", super_backup_locations[i]);
-                lseek(fd, super_backup_locations[i], SEEK_SET);
+                lseek(fd, super_backup_locations[i] * 1024, SEEK_SET);
                 read(fd, &temp_super, sizeof(temp_super));
+                printf("%d\n", super_backup_locations[i]);
                 if (!is_attacked(temp_super)) {
                     printf("Backup found, now copying...\n");
                     copy_super(fd, temp_super);
@@ -105,8 +109,11 @@ void check_fun1(int fd) {
                     printf("Could not be used.\n");
                 }
             }
-            printf("Backup could not be found.");
+            printf("Backup could not be found.\n");
         }
+    } else {
+        printf("[Fun 1] OK: Magic number matches, disk was not attacked.\n");
+        return;
     }
     printf("Could not complete fsck.\nExiting with errors.\n");    
     exit(EXIT_FAILURE);
