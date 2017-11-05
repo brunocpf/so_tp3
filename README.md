@@ -23,3 +23,7 @@ O trabalho possibilitou o maior aprendizado sobre como o sistema Extended File S
 O trabalho apresentou o resultado esperado, passando em todos os testes realizados.
 
 Link(acesso à implementação do trabalho): https://github.com/brunocpf/so_tp3
+
+## Referências
+
+http://cs.smith.edu/~nhowe/262/oldlabs/ext2.html<br/>http://pages.cs.wisc.edu/~remzi/OSTEP/file-ffs.pdf<br/>http://pages.cs.wisc.edu/~remzi/OSTEP/file-journaling.pdf
