@@ -241,10 +241,6 @@ void check_fun3(int fd) {
     unsigned int offset;
     struct ext2_group_desc temp_group_desc;
     struct ext2_inode temp_inode;
-    unsigned char owned_blocks[super.s_blocks_count];
-
-    for(i = 0; i < super.s_blocks_count; i++)
-        owned_blocks[i] = 0;
 
     // Checking owned blocks
     for(i = 0; i < group_count; i++) {
