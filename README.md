@@ -17,15 +17,15 @@ onde path é o arquivo da imagem ext2 a ser testada.
 
 ## Implementação
 ext2.h: definições úteis do ext2 copiadas do original (sbloco, inodes, etc)
-dcc.os.fsck.c: implementação do fsck
+dcc_os_fsck.c: implementação do fsck
 
 funções/macros auxiliares:
 
-ler o superbloco: (vide especificação)
-ler o grupo: (também)
-bitmaps: ler o grupo, depois ler os blocos com offset correspondente usando campos do superblock. armazenados em um array de char (1 byte/8 bits por elemento)
-testar valor de um bit no bitmap: macro TEST_BIT, usando lógica binária
-zerar o valor de um bit no bitmap: macro CLEAR_BIT, usando lógica binária
+- ler o superbloco: (vide especificação)
+- ler o grupo: (também)
+- bitmaps: ler o grupo, depois ler os blocos com offset correspondente usando campos do superblock. armazenados em um array de char (1 byte/8 bits por elemento)
+- testar valor de um bit no bitmap: macro TEST_BIT, usando lógica binária
+- zerar o valor de um bit no bitmap: macro CLEAR_BIT, usando lógica binária
 
 
 read/write inode: retirado de http://cs.smith.edu/~nhowe/262/oldlabs/ext2.html
@@ -35,23 +35,23 @@ Obs: todas as ações dependem da entrada do usuário
 Obs2: os inodes de número < que EXT2_GOOD_OLD_FIRST_INO (11) são ignorados
 
 Fun 1:
--> Verifica se o disco foi atacado usando testando se o magic number bate (is_attacked)
--> Perguntar ao usuário se ele deseja recuperar um backup no disco
--> Para cada endereço de superbloco, ler o bloco e verificar se o magic number bate ----> "For filesystems with 1k blocksizes, a backup superblock can be found at block 8193; for filesystems with 2k blocksizes, at block 16384; and  for  4k blocksizes, at block 32768."
--> O primeiro que bater é copiado no super (recuperado como backup)
+- Verifica se o disco foi atacado usando testando se o magic number bate (is_attacked)
+- Perguntar ao usuário se ele deseja recuperar um backup no disco
+- Para cada endereço de superbloco, ler o bloco e verificar se o magic number bate ----> "For filesystems with 1k blocksizes, a backup superblock can be found at block 8193; for filesystems with 2k blocksizes, at block 16384; and  for  4k blocksizes, at block 32768."
+- O primeiro que bater é copiado no super (recuperado como backup)
 
 Fun 2:
 ideia:
--> array owned_blocks mantem um contador para o número de donos de cada bloco
--> percorre sobre todos os inodes do disco, vendo os blocos utilizados e incrementando o contador correspondente
--> percorre sobre owned_blocks e vê se algum contador está maior que 1, se sim percorre novamente os inodes, verifica quais estão usando este bloco, seta para zero o bit do i-map (bitmap de inodes) do primeiro inode encontrado, deletando este
--> vê novamente se sobrou algum bloco com mais de um dono, e se sim chama a função recursivamente até não sobrar nenhum.
+- array owned_blocks mantem um contador para o número de donos de cada bloco
+- percorre sobre todos os inodes do disco, vendo os blocos utilizados e incrementando o contador correspondente
+- percorre sobre owned_blocks e vê se algum contador está maior que 1, se sim percorre novamente os inodes, verifica quais estão usando este bloco, seta para zero o bit do i-map (bitmap de inodes) do primeiro inode encontrado, deletando este
+- vê novamente se sobrou algum bloco com mais de um dono, e se sim chama a função recursivamente até não sobrar nenhum.
 
 Fun 3:
--> assim como no fun 2, percorre todos os inodes.
--> verifica se a permissão é inválida ((inode.i_mode & 0xff) == 0)
--> se sim, pede para o usuário entrar com o número decimal correspondente à permissão que ele deseja (formato chmod)
--> modifica a permissão com a função write_inode
+- assim como no fun 2, percorre todos os inodes.
+- verifica se a permissão é inválida ((inode.i_mode & 0xff) == 0)
+- se sim, pede para o usuário entrar com o número decimal correspondente à permissão que ele deseja (formato chmod)
+- modifica a permissão com a função write_inode
 
 ## Testes
 
