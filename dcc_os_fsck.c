@@ -161,7 +161,7 @@ void check_fun2(int fd) {
         lseek(fd, BLOCK_OFFSET(temp_group_desc.bg_inode_bitmap), SEEK_SET);
         read(fd, i_bmap, block_size);
         
-        for(j = 1; j <= super.s_inodes_per_group; j++) {
+        for(j = EXT2_GOOD_OLD_FIRST_INO; j <= super.s_inodes_per_group; j++) {
             read_inode(fd, j, &temp_group_desc, i, &temp_inode);
             if(!TEST_BIT(i_bmap, j-1) || temp_inode.i_size <= 0) // check if inode is valid
                 continue;
@@ -194,7 +194,7 @@ void check_fun2(int fd) {
                     read(fd, i_bmap, block_size);
                     
                     int found = 0;
-                    for(j = 1; j <= super.s_inodes_per_group; j++) {
+                    for(j = EXT2_GOOD_OLD_FIRST_INO; j <= super.s_inodes_per_group; j++) {
                         read_inode(fd, j, &temp_group_desc, i, &temp_inode);
                         if(!TEST_BIT(i_bmap, j-1) || temp_inode.i_size <= 0) // check if inode is valid
                             continue;
@@ -258,7 +258,7 @@ void check_fun3(int fd) {
         lseek(fd, BLOCK_OFFSET(temp_group_desc.bg_inode_bitmap), SEEK_SET);
         read(fd, i_bmap, block_size);
         
-        for(j = 1; j <= super.s_inodes_per_group; j++) {
+        for(j = EXT2_GOOD_OLD_FIRST_INO; j <= super.s_inodes_per_group; j++) {
             read_inode(fd, j, &temp_group_desc, i, &temp_inode);
             if(!TEST_BIT(i_bmap, j-1) || temp_inode.i_size <= 0) // check if inode is valid
                 continue;
